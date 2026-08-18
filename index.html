@@ -304,22 +304,19 @@
 <div id="toast">SYSTEM RESTRICTION: ACTION BLOCKED</div>
 
 <script>
-// --- CONFIG ---
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbylGKg79Mu95hPqXsAY4c9_7ifROjfJ2gulUPP4XuUukWCHWkROH60SkuDMjxr9F79L/exec";
+// Replace with your current Apps Script Web App URL after redeploying
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwNKAn8M35cvtmqMULFQLO_ElaE164FFq-tYEeN18U4g8quH_PP8bdn2csZG0WzWKuK/exec";
 
-// Raw file the user can pick, before any compression
 const MAX_INPUT_MB = 300;
-// Hard ceiling on what we'll actually send to Apps Script (base64 adds ~33% on top of this)
-const MAX_UPLOAD_MB = 15;
+const MAX_UPLOAD_MB = 25;
 
-// Compression targets — tuned for "gift video" quality at much smaller size
-const COMPRESS_MAX_WIDTH = 854;        // ~480p width, keeps files small and fast
-const COMPRESS_VIDEO_BITRATE = 1_500_000; // 1.5 Mbps
+const COMPRESS_MAX_WIDTH = 854;
+const COMPRESS_VIDEO_BITRATE = 1_500_000;
 const COMPRESS_AUDIO_BITRATE = 96_000;
 
 let selectedFile = null;
 
-// Security - Anti-Inspect
+// Security anti-inspect
 document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener("keydown", e => {
   if (e.key === "F12" || (e.ctrlKey && e.shiftKey && "IJC".includes(e.key)) || (e.ctrlKey && e.key === "u")) {
@@ -336,13 +333,10 @@ window.onload = () => {
     document.getElementById("productId").value = pId;
     document.getElementById("productLabel").innerText = pId;
   } else {
-    // Graceful fallback for local/direct testing without URL query parameters
     document.getElementById("productId").value = "DEMO-TEST";
     document.getElementById("productLabel").innerText = "DEMO-TEST (no product param)";
   }
 
-  // Compression relies on MediaRecorder + canvas.captureStream; hide the
-  // toggle (and default to off) on browsers that don't support it.
   const supported = !!(window.MediaRecorder && HTMLCanvasElement.prototype.captureStream);
   if (!supported) {
     document.getElementById("compressToggle").checked = false;
@@ -372,7 +366,6 @@ function previewFile(input) {
   document.getElementById("fileMeta").innerText = `Selected: ${formatMB(file.size)}`;
 }
 
-// --- Client-side compression ---
 function compressVideo(file, onProgress) {
   return new Promise((resolve, reject) => {
     const video = document.createElement('video');
@@ -403,9 +396,7 @@ function compressVideo(file, onProgress) {
           ...canvasStream.getVideoTracks(),
           ...dest.stream.getAudioTracks()
         ]);
-      } catch (e) {
-        // proceed video-only
-      }
+      } catch (e) {}
 
       let mimeType = 'video/webm;codecs=vp9,opus';
       if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm';
@@ -446,7 +437,6 @@ function compressVideo(file, onProgress) {
       };
 
       video.onerror = reject;
-
       recorder.start();
       video.play().then(drawFrame).catch(reject);
     };
@@ -455,7 +445,6 @@ function compressVideo(file, onProgress) {
   });
 }
 
-// --- Upload ---
 async function uploadBase64(base64, fileName, productId, onProgress) {
   const payloadBytes = base64.length * 0.75;
   const assumedBytesPerSec = 600 * 1024;
@@ -471,11 +460,12 @@ async function uploadBase64(base64, fileName, productId, onProgress) {
   }, 150);
 
   try {
+    // Send as text/plain to avoid CORS preflight drops while preserving body contents
     await fetch(WEB_APP_URL, {
       method: "POST",
       mode: "no-cors",
       cache: "no-cache",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({ productId, file: base64, fileName })
     });
   } finally {
@@ -493,14 +483,19 @@ async function initiateUpload() {
   const btn = document.getElementById("uploadBtn");
   const wantsCompression = document.getElementById("compressToggle").checked;
 
+  box.style.display = "block";
+
+  if (!pId) {
+    status.innerText = "No product ID found";
+    return;
+  }
+
   if (!selectedFile) {
-    box.style.display = "block";
     status.innerText = "Please choose a video first";
     return;
   }
 
   btn.disabled = true;
-  box.style.display = "block";
   bar.style.width = "0%";
 
   let uploadBlob = selectedFile;
@@ -548,11 +543,20 @@ async function initiateUpload() {
 
   } catch (err) {
     console.error(err);
-    status.innerText = "UPLINK FAILED. RETRY.";
+    status.innerText = "FAILED: " + (err && err.message ? err.message : "Unknown error");
     btn.disabled = false;
     btn.innerText = "Retry Link";
   }
 }
+
+window.addEventListener("error", (e) => {
+  const status = document.getElementById("status-msg");
+  const box = document.getElementById("progressBox");
+  if (status && box) {
+    box.style.display = "block";
+    status.innerText = "SCRIPT ERROR: " + e.message;
+  }
+});
 </script>
 
 </body>
