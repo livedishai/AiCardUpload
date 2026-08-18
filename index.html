@@ -305,7 +305,7 @@
 
 <script>
 // --- CONFIG ---
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwNKAn8M35cvtmqMULFQLO_ElaE164FFq-tYEeN18U4g8quH_PP8bdn2csZG0WzWKuK/exec";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbylGKg79Mu95hPqXsAY4c9_7ifROjfJ2gulUPP4XuUukWCHWkROH60SkuDMjxr9F79L/exec";
 
 // Raw file the user can pick, before any compression
 const MAX_INPUT_MB = 300;
@@ -313,7 +313,7 @@ const MAX_INPUT_MB = 300;
 const MAX_UPLOAD_MB = 15;
 
 // Compression targets — tuned for "gift video" quality at much smaller size
-const COMPRESS_MAX_WIDTH = 854;       // ~480p width
+const COMPRESS_MAX_WIDTH = 854;        // ~480p width, keeps files small and fast
 const COMPRESS_VIDEO_BITRATE = 1_500_000; // 1.5 Mbps
 const COMPRESS_AUDIO_BITRATE = 96_000;
 
@@ -336,13 +336,13 @@ window.onload = () => {
     document.getElementById("productId").value = pId;
     document.getElementById("productLabel").innerText = pId;
   } else {
-    document.getElementById("status-msg").innerText = "Error: Invalid Handshake";
-    document.getElementById("productLabel").innerText = "INVALID";
-    document.getElementById("progressBox").style.display = "block";
-    document.getElementById("uploadBtn").disabled = true;
+    // Graceful fallback for local/direct testing without URL query parameters
+    document.getElementById("productId").value = "DEMO-TEST";
+    document.getElementById("productLabel").innerText = "DEMO-TEST (no product param)";
   }
 
-  // Hide toggle on unsupported browsers
+  // Compression relies on MediaRecorder + canvas.captureStream; hide the
+  // toggle (and default to off) on browsers that don't support it.
   const supported = !!(window.MediaRecorder && HTMLCanvasElement.prototype.captureStream);
   if (!supported) {
     document.getElementById("compressToggle").checked = false;
@@ -493,12 +493,6 @@ async function initiateUpload() {
   const btn = document.getElementById("uploadBtn");
   const wantsCompression = document.getElementById("compressToggle").checked;
 
-  if (!pId) {
-    box.style.display = "block";
-    status.innerText = "Error: Invalid Handshake";
-    return;
-  }
-
   if (!selectedFile) {
     box.style.display = "block";
     status.innerText = "Please choose a video first";
@@ -559,15 +553,6 @@ async function initiateUpload() {
     btn.innerText = "Retry Link";
   }
 }
-
-window.addEventListener("error", (e) => {
-  const status = document.getElementById("status-msg");
-  const box = document.getElementById("progressBox");
-  if (status && box) {
-    box.style.display = "block";
-    status.innerText = "SCRIPT ERROR: " + e.message;
-  }
-});
 </script>
 
 </body>
