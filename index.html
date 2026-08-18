@@ -336,8 +336,11 @@ window.onload = () => {
     document.getElementById("productId").value = pId;
     document.getElementById("productLabel").innerText = pId;
   } else {
-    document.getElementById("status-msg").innerText = "Error: Invalid Handshake";
-    document.getElementById("uploadBtn").disabled = true;
+    // No product param found (e.g. testing by opening the file directly).
+    // Don't lock the whole page — fall back to a placeholder so upload can
+    // still be tested, but make it obvious this isn't a real handshake.
+    document.getElementById("productId").value = "DEMO-TEST";
+    document.getElementById("productLabel").innerText = "DEMO-TEST (no product param in URL)";
   }
 
   // Compression relies on MediaRecorder + canvas.captureStream; hide the
