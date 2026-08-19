@@ -17,20 +17,19 @@
 
   body {
     margin: 0;
-    padding: 0;
+    padding: 20px 0;
     font-family: 'Space Grotesk', sans-serif;
     background-color: var(--bg-black);
     color: #fff;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;
+    box-sizing: border-box;
   }
 
-  /* Decorative Background Elements */
   .bg-glow {
-    position: absolute;
+    position: fixed;
     width: 100%;
     height: 100%;
     background: radial-gradient(circle at 50% 50%, #111 0%, #000 100%);
@@ -39,14 +38,15 @@
 
   .card-elite {
     width: 90%;
-    max-width: 370px;
+    max-width: 380px;
     background: var(--surface);
     border-radius: 40px;
-    padding: 40px 25px;
+    padding: 35px 25px;
     box-shadow: 0 0 50px rgba(0,0,0,1), inset 0 1px 1px rgba(255,255,255,0.1);
     text-align: center;
     position: relative;
     border: 1px solid #222;
+    box-sizing: border-box;
   }
 
   .status-pill {
@@ -59,11 +59,11 @@
     text-transform: uppercase;
     letter-spacing: 2px;
     color: #666;
-    margin-bottom: 25px;
+    margin-bottom: 20px;
   }
 
   h2 {
-    font-size: 28px;
+    font-size: 26px;
     margin: 0;
     font-weight: 700;
     letter-spacing: -1px;
@@ -72,16 +72,17 @@
   .desc {
     color: #555;
     font-size: 14px;
-    margin-bottom: 30px;
+    margin-bottom: 25px;
   }
 
-  /* Holographic Drop Zone */
+  /* Dynamic Holographic Drop Zone */
   .holo-zone {
     width: 100%;
-    aspect-ratio: 1/1;
+    min-height: 220px;
+    max-height: 380px;
     background: #000;
-    border-radius: 30px;
-    margin-bottom: 30px;
+    border-radius: 24px;
+    margin-bottom: 25px;
     border: 1px solid #222;
     display: flex;
     flex-direction: column;
@@ -89,7 +90,7 @@
     align-items: center;
     cursor: pointer;
     position: relative;
-    transition: 0.4s;
+    transition: border-color 0.3s, box-shadow 0.3s, height 0.3s;
     overflow: hidden;
   }
 
@@ -115,8 +116,7 @@
   #videoPreview {
     width: 100%;
     height: 100%;
-    object-fit: contain; /* Preserves 16:9, 9:16, or any ratio without cropping */
-    background: #000;
+    object-fit: contain; /* Preserves entire video framing */
     display: none;
     z-index: 2;
   }
@@ -124,17 +124,17 @@
   .upload-prompt {
     z-index: 1;
     transition: 0.3s;
+    padding: 20px;
   }
 
-  /* The Elite Button */
   .btn-elite {
     width: 100%;
-    padding: 22px;
-    border-radius: 20px;
+    padding: 20px;
+    border-radius: 18px;
     border: none;
     background: linear-gradient(135deg, #fff 0%, #d1d1d1 100%);
     color: #000;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
     cursor: pointer;
     transition: 0.3s;
@@ -145,12 +145,11 @@
   .btn-elite:hover {
     background: var(--neon);
     box-shadow: 0 15px 30px var(--neon-muted);
-    transform: translateY(-3px);
+    transform: translateY(-2px);
   }
 
-  /* Linear Progress */
   .progress-wrap {
-    margin-top: 30px;
+    margin-top: 25px;
     display: none;
   }
 
@@ -179,7 +178,6 @@
 
   input[type="file"] { display: none; }
 
-  /* Toast */
   #toast {
     visibility: hidden;
     position: fixed;
@@ -210,12 +208,12 @@
   <div class="status-pill">System Ready • <span id="productLabel">...</span></div>
   
   <h2>Activate AI Gift</h2>
-  <p class="desc">Link your to a your Video</p>
+  <p class="desc">Link your memory video</p>
 
-  <div class="holo-zone" onclick="document.getElementById('videoFile').click()">
+  <div class="holo-zone" id="holoZone" onclick="document.getElementById('videoFile').click()">
     <div class="upload-prompt" id="promptText">
-      <div style="font-size: 40px; margin-bottom: 10px; filter: grayscale(1);">⚡</div>
-      <div style="font-weight: 500;">CHOOSE MEMORY</div>
+      <div style="font-size: 36px; margin-bottom: 8px; filter: grayscale(1);">⚡</div>
+      <div style="font-weight: 500; font-size: 14px;">CHOOSE VIDEO (16:9 / 9:16)</div>
     </div>
     <video id="videoPreview" autoplay muted loop playsinline></video>
   </div>
@@ -236,9 +234,8 @@
 <div id="toast">SYSTEM RESTRICTION: ACTION BLOCKED</div>
 
 <script>
-// --- FUNCTIONALITY ---
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwNKAn8M35cvtmqMULFQLO_ElaE164FFq-tYEeN18U4g8quH_PP8bdn2csZG0WzWKuK/exec";
-  
+
 // Security - Anti-Inspect
 document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener("keydown", e => {
@@ -262,22 +259,29 @@ window.onload = () => {
   }
 };
 
-// Holographic Preview
+// Preview with Dynamic Aspect Ratio Adaptation
 function previewFile(input) {
   const file = input.files[0];
-  if (file) {
+  if (!file) return;
+
+  const preview = document.getElementById('videoPreview');
+  const holoZone = document.getElementById('holoZone');
+  preview.src = URL.createObjectURL(file);
+
+  preview.onloadedmetadata = () => {
     document.getElementById('promptText').style.display = 'none';
-    const preview = document.getElementById('videoPreview');
-    preview.src = URL.createObjectURL(file);
     preview.style.display = 'block';
-  }
+    
+    // Set UI preview box aspect-ratio matching the original video
+    holoZone.style.aspectRatio = `${preview.videoWidth} / ${preview.videoHeight}`;
+  };
 }
 
-// Client-Side Video Compressor
+// Proportional Aspect-Ratio Preserving Video Compressor
 async function compressVideo(file, onProgress) {
   return new Promise((resolve) => {
     if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) {
-      resolve(file);
+      resolve({ blob: file, isCompressed: false });
       return;
     }
 
@@ -287,28 +291,32 @@ async function compressVideo(file, onProgress) {
     video.playsInline = true;
 
     video.onloadedmetadata = () => {
-      let width = video.videoWidth;
-      let height = video.videoHeight;
+      const origWidth = video.videoWidth;
+      const origHeight = video.videoHeight;
+      const aspectRatio = origWidth / origHeight;
       const maxDimension = 720;
 
-      // Scale proportionally preserving aspect ratio (16:9, 9:16, etc.)
-      if (width > maxDimension || height > maxDimension) {
-        if (width > height) {
-          height = Math.round((height * maxDimension) / width);
-          width = maxDimension;
+      let targetWidth = origWidth;
+      let targetHeight = origHeight;
+
+      // Scale down max dimension to 720p while preserving exact aspect ratio
+      if (origWidth > maxDimension || origHeight > maxDimension) {
+        if (origWidth >= origHeight) {
+          targetWidth = maxDimension;
+          targetHeight = Math.round(maxDimension / aspectRatio);
         } else {
-          width = Math.round((width * maxDimension) / height);
-          height = maxDimension;
+          targetHeight = maxDimension;
+          targetWidth = Math.round(maxDimension * aspectRatio);
         }
       }
 
-      // Enforce even dimensions required by video codecs
-      width = width - (width % 2);
-      height = height - (height % 2);
+      // Codecs require even dimensions
+      targetWidth = targetWidth % 2 === 0 ? targetWidth : targetWidth - 1;
+      targetHeight = targetHeight % 2 === 0 ? targetHeight : targetHeight - 1;
 
       const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
       const ctx = canvas.getContext('2d');
 
       const stream = canvas.captureStream(30);
@@ -321,9 +329,7 @@ async function compressVideo(file, onProgress) {
         if (dest.stream.getAudioTracks().length > 0) {
           stream.addTrack(dest.stream.getAudioTracks()[0]);
         }
-      } catch (e) {
-        // Fallback for audio capture issues
-      }
+      } catch (e) {}
 
       const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8') 
         ? 'video/webm;codecs=vp8' 
@@ -333,10 +339,10 @@ async function compressVideo(file, onProgress) {
       try {
         recorder = new MediaRecorder(stream, {
           mimeType: mimeType,
-          videoBitsPerSecond: 1200000 // 1.2 Mbps
+          videoBitsPerSecond: 1200000
         });
       } catch (e) {
-        resolve(file);
+        resolve({ blob: file, isCompressed: false });
         return;
       }
 
@@ -347,7 +353,7 @@ async function compressVideo(file, onProgress) {
 
       recorder.onstop = () => {
         const compressedBlob = new Blob(chunks, { type: 'video/webm' });
-        resolve(compressedBlob);
+        resolve({ blob: compressedBlob, isCompressed: true });
       };
 
       video.play();
@@ -355,7 +361,7 @@ async function compressVideo(file, onProgress) {
 
       function drawFrame() {
         if (!video.paused && !video.ended) {
-          ctx.drawImage(video, 0, 0, width, height);
+          ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
           if (video.duration) {
             const percent = Math.min(Math.round((video.currentTime / video.duration) * 100), 100);
             if (onProgress) onProgress(percent);
@@ -366,18 +372,14 @@ async function compressVideo(file, onProgress) {
 
       drawFrame();
 
-      video.onended = () => {
-        recorder.stop();
-      };
-
-      video.onerror = () => resolve(file);
+      video.onended = () => recorder.stop();
+      video.onerror = () => resolve({ blob: file, isCompressed: false });
     };
 
-    video.onerror = () => resolve(file);
+    video.onerror = () => resolve({ blob: file, isCompressed: false });
   });
 }
 
-// Convert Blob/File to Base64
 function fileToBase64(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -387,9 +389,9 @@ function fileToBase64(blob) {
   });
 }
 
-// Upload Logic
 async function initiateUpload() {
-  const file = document.getElementById("videoFile").files[0];
+  const fileInput = document.getElementById("videoFile");
+  const file = fileInput.files[0];
   const pId = document.getElementById("productId").value;
   const status = document.getElementById("status-msg");
   const bar = document.getElementById("progressBar");
@@ -405,21 +407,22 @@ async function initiateUpload() {
   status.innerText = "Optimizing video...";
 
   try {
-    const processedBlob = await compressVideo(file, (percent) => {
+    const { blob, isCompressed } = await compressVideo(file, (percent) => {
       bar.style.width = `${Math.round(percent * 0.5)}%`;
       status.innerText = `Optimizing video (${percent}%)...`;
     });
 
     bar.style.width = "60%";
-    status.innerText = "Encrypting memory packet...";
+    status.innerText = "Encoding payload...";
 
-    const base64 = await fileToBase64(processedBlob);
+    const base64 = await fileToBase64(blob);
     
+    // Choose correct extension if compression ran or original file was retained
+    const finalExtension = isCompressed ? ".webm" : (file.name.substring(file.name.lastIndexOf('.')) || ".mp4");
+    const cleanFileName = file.name.replace(/\.[^/.]+$/, "") + finalExtension;
+
     bar.style.width = "75%";
     status.innerText = "Transmitting to cloud...";
-
-    const isWebm = processedBlob.type === "video/webm";
-    const extension = isWebm ? ".webm" : "." + (file.name.split('.').pop() || "mp4");
 
     await fetch(WEB_APP_URL, {
       method: "POST",
@@ -429,7 +432,7 @@ async function initiateUpload() {
       body: JSON.stringify({ 
         productId: pId, 
         file: base64, 
-        fileName: file.name.replace(/\.[^/.]+$/, "") + extension
+        fileName: cleanFileName
       })
     });
 
