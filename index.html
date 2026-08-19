@@ -17,7 +17,7 @@
 
   body {
     margin: 0;
-    padding: 20px 0;
+    padding: 24px 0;
     font-family: 'Space Grotesk', sans-serif;
     background-color: var(--bg-black);
     color: #fff;
@@ -75,11 +75,11 @@
     margin-bottom: 25px;
   }
 
-  /* Dynamic Holographic Drop Zone */
+  /* Holographic Drop Zone - Flexibly expands/contracts with video aspect ratio */
   .holo-zone {
     width: 100%;
-    min-height: 220px;
-    max-height: 380px;
+    min-height: 180px;
+    max-height: 420px;
     background: #000;
     border-radius: 24px;
     margin-bottom: 25px;
@@ -90,7 +90,7 @@
     align-items: center;
     cursor: pointer;
     position: relative;
-    transition: border-color 0.3s, box-shadow 0.3s, height 0.3s;
+    transition: border-color 0.3s, box-shadow 0.3s;
     overflow: hidden;
   }
 
@@ -116,7 +116,7 @@
   #videoPreview {
     width: 100%;
     height: 100%;
-    object-fit: contain; /* Preserves entire video framing */
+    object-fit: contain; /* Never crop 16:9 or 9:16 video */
     display: none;
     z-index: 2;
   }
@@ -213,7 +213,7 @@
   <div class="holo-zone" id="holoZone" onclick="document.getElementById('videoFile').click()">
     <div class="upload-prompt" id="promptText">
       <div style="font-size: 36px; margin-bottom: 8px; filter: grayscale(1);">⚡</div>
-      <div style="font-weight: 500; font-size: 14px;">CHOOSE VIDEO (16:9 / 9:16)</div>
+      <div style="font-weight: 500; font-size: 14px;">CHOOSE MEMORY</div>
     </div>
     <video id="videoPreview" autoplay muted loop playsinline></video>
   </div>
@@ -259,7 +259,7 @@ window.onload = () => {
   }
 };
 
-// Preview with Dynamic Aspect Ratio Adaptation
+// Preview that dynamically locks container to the uploaded video's aspect ratio
 function previewFile(input) {
   const file = input.files[0];
   if (!file) return;
@@ -272,12 +272,12 @@ function previewFile(input) {
     document.getElementById('promptText').style.display = 'none';
     preview.style.display = 'block';
     
-    // Set UI preview box aspect-ratio matching the original video
+    // Automatically match the exact video aspect ratio (16:9, 9:16, etc.)
     holoZone.style.aspectRatio = `${preview.videoWidth} / ${preview.videoHeight}`;
   };
 }
 
-// Proportional Aspect-Ratio Preserving Video Compressor
+// Aspect-ratio-preserving compressor
 async function compressVideo(file, onProgress) {
   return new Promise((resolve) => {
     if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) {
@@ -291,36 +291,35 @@ async function compressVideo(file, onProgress) {
     video.playsInline = true;
 
     video.onloadedmetadata = () => {
-      const origWidth = video.videoWidth;
-      const origHeight = video.videoHeight;
-      const aspectRatio = origWidth / origHeight;
-      const maxDimension = 720;
+      const origW = video.videoWidth;
+      const origH = video.videoHeight;
+      const maxDim = 720;
 
-      let targetWidth = origWidth;
-      let targetHeight = origHeight;
+      let targetW, targetH;
 
-      // Scale down max dimension to 720p while preserving exact aspect ratio
-      if (origWidth > maxDimension || origHeight > maxDimension) {
-        if (origWidth >= origHeight) {
-          targetWidth = maxDimension;
-          targetHeight = Math.round(maxDimension / aspectRatio);
-        } else {
-          targetHeight = maxDimension;
-          targetWidth = Math.round(maxDimension * aspectRatio);
-        }
+      // Scale proportionally preserving 16:9, 9:16, or any custom ratio
+      if (origW >= origH) {
+        // Landscape (e.g. 16:9)
+        targetW = origW > maxDim ? maxDim : origW;
+        targetH = Math.round(targetW * (origH / origW));
+      } else {
+        // Portrait (e.g. 9:16)
+        targetH = origH > maxDim ? maxDim : origH;
+        targetW = Math.round(targetH * (origW / origH));
       }
 
       // Codecs require even dimensions
-      targetWidth = targetWidth % 2 === 0 ? targetWidth : targetWidth - 1;
-      targetHeight = targetHeight % 2 === 0 ? targetHeight : targetHeight - 1;
+      targetW = targetW % 2 === 0 ? targetW : targetW - 1;
+      targetH = targetH % 2 === 0 ? targetH : targetH - 1;
 
       const canvas = document.createElement('canvas');
-      canvas.width = targetWidth;
-      canvas.height = targetHeight;
+      canvas.width = targetW;
+      canvas.height = targetH;
       const ctx = canvas.getContext('2d');
 
       const stream = canvas.captureStream(30);
 
+      // Audio track extraction
       try {
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const source = audioContext.createMediaElementSource(video);
@@ -361,7 +360,7 @@ async function compressVideo(file, onProgress) {
 
       function drawFrame() {
         if (!video.paused && !video.ended) {
-          ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
+          ctx.drawImage(video, 0, 0, targetW, targetH);
           if (video.duration) {
             const percent = Math.min(Math.round((video.currentTime / video.duration) * 100), 100);
             if (onProgress) onProgress(percent);
@@ -417,7 +416,7 @@ async function initiateUpload() {
 
     const base64 = await fileToBase64(blob);
     
-    // Choose correct extension if compression ran or original file was retained
+    // Choose correct extension depending on whether WebM compression succeeded
     const finalExtension = isCompressed ? ".webm" : (file.name.substring(file.name.lastIndexOf('.')) || ".mp4");
     const cleanFileName = file.name.replace(/\.[^/.]+$/, "") + finalExtension;
 
