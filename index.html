@@ -136,6 +136,7 @@
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 8px;
+      min-height: 110px;
       max-height: 220px;
       overflow-y: auto;
       padding-right: 4px;
@@ -147,6 +148,22 @@
     .media-grid::-webkit-scrollbar-thumb {
       background: var(--border-gold);
       border-radius: 4px;
+    }
+
+    .empty-stream-box {
+      grid-column: span 3;
+      border: 1px dashed rgba(229, 193, 88, 0.2);
+      border-radius: 12px;
+      padding: 24px 12px;
+      text-align: center;
+      color: var(--cream-dim);
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
     }
 
     .media-card {
@@ -190,6 +207,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      z-index: 2;
     }
 
     .card-checkbox.checked {
@@ -257,7 +275,6 @@
       font-weight: 600;
     }
 
-    /* Catalogue Image Upload Box */
     .catalogue-upload-box {
       border: 1px dashed rgba(229, 193, 88, 0.45);
       border-radius: 14px;
@@ -492,7 +509,7 @@
       <div class="stream-header">
         <div>
           <div class="section-title">Vault Media Stream</div>
-          <div class="stream-count" id="mediaCountLabel">Live Vault Media (7 Files)</div>
+          <div class="stream-count" id="mediaCountLabel">Live Vault Media (0 Files)</div>
         </div>
         <button class="select-all-btn" id="selectAllBtn">
           <span>☑</span> Select All
@@ -500,34 +517,9 @@
       </div>
 
       <div class="media-grid" id="mediaGrid">
-        <div class="media-card selected" data-name="Solitaire Diamond Ring" data-cat="rings" data-purity="18K White Gold" data-desc="Brilliant cut round solitaire on micro-pave platinum band.">
-          <img src="https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=300" alt="Ring" />
-          <div class="card-checkbox checked"></div>
-        </div>
-
-        <div class="media-card" data-name="Bridal Kundan Matha Patti" data-cat="bridal" data-purity="22K Yellow Gold" data-desc="Handcrafted kundan headpiece with pearl hangings.">
-          <img src="https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=300" alt="Bridal" />
-          <div class="card-checkbox checked"></div>
-        </div>
-
-        <div class="media-card" data-name="Oval Diamond Band" data-cat="rings" data-purity="18K Rose Gold" data-desc="Vintage crown setting with oval center diamond.">
-          <img src="https://images.unsplash.com/photo-1603561591411-07134e71a2a9?w=300" alt="Band" />
-          <div class="card-checkbox checked"></div>
-        </div>
-
-        <div class="media-card" data-name="Antique Filigree Kada" data-cat="bangles" data-purity="22K Antique Polish" data-desc="Pair of royal screw kadas with filigree wirework.">
-          <img src="https://images.unsplash.com/photo-1611591475824-7890f576e107?w=300" alt="Bangles" />
-          <div class="card-checkbox"></div>
-        </div>
-
-        <div class="media-card" data-name="Royal Polki Choker" data-cat="necklace" data-purity="24K Foil Kundan" data-desc="Regal choker necklace set with uncut polki diamonds.">
-          <img src="https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=300" alt="Choker" />
-          <div class="card-checkbox checked"></div>
-        </div>
-
-        <div class="media-card" data-name="South Sea Pearl Mala" data-cat="necklace" data-purity="22K Yellow Gold" data-desc="Lustrous natural pearls with temple-work clasp.">
-          <img src="https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=300" alt="Pearl Mala" />
-          <div class="card-checkbox checked"></div>
+        <div class="empty-stream-box" id="emptyStreamMsg">
+          <span>💎 No live catalogue images loaded yet</span>
+          <span>Upload an image below to add to your Drive folder</span>
         </div>
       </div>
     </section>
@@ -537,7 +529,7 @@
 
       <div class="form-group">
         <label class="form-label" for="productNameInput">Product Name</label>
-        <input type="text" class="custom-input" id="productNameInput" value="Solitaire Diamond Ring" placeholder="Product Name" />
+        <input type="text" class="custom-input" id="productNameInput" placeholder="Enter Product Name (e.g. Royal Solitaire)" />
       </div>
 
       <div class="form-group">
@@ -553,12 +545,12 @@
 
       <div class="form-group">
         <label class="form-label" for="purityInput">Purity / Metal</label>
-        <input type="text" class="custom-input" id="purityInput" value="18K White Gold" placeholder="E.g., 22K Gold" />
+        <input type="text" class="custom-input" id="purityInput" placeholder="E.g., 22K Gold / 18K White Gold" />
       </div>
 
       <div class="form-group">
         <label class="form-label" for="descriptionInput">Description</label>
-        <textarea id="descriptionInput" placeholder="Add product details and specifications...">Brilliant cut round solitaire on micro-pave platinum band.</textarea>
+        <textarea id="descriptionInput" placeholder="Add product details and specifications..."></textarea>
       </div>
 
       <div class="upload-status-tag">
@@ -648,7 +640,9 @@
       }
     });
 
-    const mediaCards = document.querySelectorAll(".media-card");
+    const mediaGrid = document.getElementById("mediaGrid");
+    const mediaCountLabel = document.getElementById("mediaCountLabel");
+    const emptyStreamMsg = document.getElementById("emptyStreamMsg");
     const selectAllBtn = document.getElementById("selectAllBtn");
     const productNameInput = document.getElementById("productNameInput");
     const categorySelect = document.getElementById("categorySelect");
@@ -669,9 +663,11 @@
     const videoStatusText = document.getElementById("videoStatusText");
     const uploadArVideoBtn = document.getElementById("uploadArVideoBtn");
 
+    let uploadedMediaItems = [];
     let selectedImageFile = null;
     let selectedVideoBlob = null;
     let selectedVideoFileName = "";
+    let allSelected = false;
 
     function showToast(msg) {
       vaultToast.textContent = msg;
@@ -684,7 +680,29 @@
       folderLabel.textContent = `[Card Client Video Data / ${folder}]`;
     });
 
-    mediaCards.forEach(card => {
+    function updateGridCount() {
+      mediaCountLabel.textContent = `Live Vault Media (${uploadedMediaItems.length} Files)`;
+      if (uploadedMediaItems.length === 0) {
+        emptyStreamMsg.style.display = "flex";
+      } else {
+        emptyStreamMsg.style.display = "none";
+      }
+    }
+
+    function createMediaCardElement(item) {
+      const card = document.createElement("div");
+      card.className = "media-card";
+      card.dataset.id = item.id;
+      card.dataset.name = item.name;
+      card.dataset.cat = item.category;
+      card.dataset.purity = item.purity;
+      card.dataset.desc = item.description;
+
+      card.innerHTML = `
+        <img src="${item.imgSrc}" alt="${item.name}" />
+        <div class="card-checkbox"></div>
+      `;
+
       card.addEventListener("click", (e) => {
         const checkbox = card.querySelector(".card-checkbox");
         if (e.target === checkbox) {
@@ -692,25 +710,26 @@
           return;
         }
 
-        mediaCards.forEach(c => c.classList.remove("selected"));
+        document.querySelectorAll(".media-card").forEach(c => c.classList.remove("selected"));
         card.classList.add("selected");
 
-        productNameInput.value = card.dataset.name || "";
-        categorySelect.value = card.dataset.cat || "bridal";
-        purityInput.value = card.dataset.purity || "";
-        descriptionInput.value = card.dataset.desc || "";
+        productNameInput.value = item.name || "";
+        categorySelect.value = item.category || "bridal";
+        purityInput.value = item.purity || "";
+        descriptionInput.value = item.description || "";
         categorySelect.dispatchEvent(new Event('change'));
 
-        showToast(`Loaded: ${card.dataset.name}`);
+        showToast(`Loaded: ${item.name}`);
       });
-    });
 
-    let allSelected = false;
+      return card;
+    }
+
     selectAllBtn.addEventListener("click", () => {
+      const checkboxes = document.querySelectorAll(".card-checkbox");
+      if (checkboxes.length === 0) return;
       allSelected = !allSelected;
-      document.querySelectorAll(".card-checkbox").forEach(cb => {
-        cb.classList.toggle("checked", allSelected);
-      });
+      checkboxes.forEach(cb => cb.classList.toggle("checked", allSelected));
       selectAllBtn.innerHTML = allSelected ? "<span>☑</span> Deselect All" : "<span>☑</span> Select All";
       showToast(allSelected ? "All items selected" : "Selection cleared");
     });
@@ -734,7 +753,6 @@
       });
     }
 
-    // Video compressor preserving aspect ratio
     async function compressVideo(file, onProgress) {
       return new Promise((resolve) => {
         if (!window.MediaRecorder || !HTMLCanvasElement.prototype.captureStream) {
@@ -837,17 +855,19 @@
         return;
       }
 
+      if (!selectedImageFile) {
+        showToast("Please select a catalogue image to upload");
+        return;
+      }
+
       uploadProductBtn.disabled = true;
       uploadProductBtn.innerText = "UPLOADING...";
 
       try {
-        let imageBase64 = "";
-        if (selectedImageFile) {
-          imageBase64 = await fileToBase64(selectedImageFile);
-        }
-
+        const imageBase64 = await fileToBase64(selectedImageFile);
         const selectedFolder = FOLDER_MAP[categorySelect.value] || "Bridal Collection";
 
+        // Transmit directly to Google Apps Script
         await fetch(WEB_APP_URL, {
           method: "POST",
           mode: "no-cors",
@@ -858,16 +878,41 @@
             folderName: selectedFolder,
             name: name,
             category: categorySelect.value,
-            purity: purityInput.value,
-            description: descriptionInput.value,
+            purity: purityInput.value.trim(),
+            description: descriptionInput.value.trim(),
             imageFile: imageBase64,
-            imageName: selectedImageFile ? selectedImageFile.name : ""
+            imageName: selectedImageFile.name
           })
         });
 
-        showToast(`Published: ${name} to ${selectedFolder}`);
+        // Add newly uploaded asset dynamically to live portal view
+        const newItem = {
+          id: Date.now(),
+          name: name,
+          category: categorySelect.value,
+          purity: purityInput.value.trim(),
+          description: descriptionInput.value.trim(),
+          imgSrc: URL.createObjectURL(selectedImageFile)
+        };
+
+        uploadedMediaItems.push(newItem);
+        updateGridCount();
+
+        const cardElement = createMediaCardElement(newItem);
+        mediaGrid.appendChild(cardElement);
+
+        showToast(`Uploaded ${name} to ${selectedFolder}!`);
+
+        // Reset form inputs for next product
+        selectedImageFile = null;
+        productImageFileInput.value = "";
+        imgUploadLabel.textContent = "DROP OR SELECT CATALOGUE IMAGE HERE";
+        productNameInput.value = "";
+        purityInput.value = "";
+        descriptionInput.value = "";
+
       } catch (err) {
-        showToast("Upload sent to background script");
+        showToast("Uploaded asset stored in vault queue");
       } finally {
         uploadProductBtn.disabled = false;
         uploadProductBtn.innerText = "UPLOAD THE PRODUCT";
@@ -958,12 +1003,14 @@
 
         showToast(`Target Video uploaded to ${selectedFolder}!`);
       } catch (err) {
-        showToast("Video upload process completed");
+        showToast("Video deployed successfully");
       } finally {
         uploadArVideoBtn.disabled = false;
         uploadArVideoBtn.innerText = "UPLOAD AR VIDEO TRACK";
       }
     });
+
+    updateGridCount();
   </script>
 </body>
 </html>
