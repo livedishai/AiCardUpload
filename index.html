@@ -242,7 +242,6 @@
       min-height: 48px;
     }
 
-    /* Catalogue Image Drop Strip (Right Above Upload Button) */
     .catalogue-upload-strip {
       border: 1px dashed rgba(229, 193, 88, 0.45);
       border-radius: 12px;
@@ -324,7 +323,6 @@
       filter: brightness(1.1);
     }
 
-    /* Bottom AR Target Video Section */
     .ar-target-section {
       display: flex;
       flex-direction: column;
@@ -491,7 +489,6 @@
   <main class="vault-console">
 
     <div class="top-split">
-      <!-- Media Stream -->
       <section class="media-stream">
         <div class="stream-header">
           <div>
@@ -531,7 +528,6 @@
         </div>
       </section>
 
-      <!-- Metadata Editor -->
       <section class="metadata-editor">
         <div class="section-title">File Metadata Editor</div>
 
@@ -563,7 +559,6 @@
       </section>
     </div>
 
-    <!-- Catalogue Image Upload Area + Upload the Product Button -->
     <div class="catalogue-upload-strip" id="catalogueUploadStrip">
       <div class="upload-strip-left" onclick="document.getElementById('productImageFileInput').click()">
         <span class="strip-icon">📸💍</span>
@@ -572,12 +567,10 @@
       <button class="primary-btn" id="uploadProductBtn" onclick="initiateProductUpload()">Upload the Product</button>
     </div>
 
-    <!-- Remove Selected from Customer View (Soft Delete) -->
     <button class="soft-delete-btn" id="softDeleteBtn" onclick="initiateSoftDelete()">
       Remove Selected from Customer View (Soft Delete)
     </button>
 
-    <!-- AR Experience Media Section -->
     <section class="ar-target-section">
       <div class="ar-target-banner">AR Experience Media (Card Target)</div>
 
@@ -617,8 +610,7 @@
   <input type="file" id="arVideoFileInput" accept="video/*" onchange="handleArVideoSelect(this)" />
 
   <script>
-    // YOUR GOOGLE APPS SCRIPT WEB APP URL HERE
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwNKAn8M35cvtmqMULFQLO_ElaE164FFq-tYEeN18U4g8quH_PP8bdn2csZG0WzWKuK/exec";
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxy00k2Wyp-e-bfmeiaUaR8teIW36YnFpRmRILXoxZSuG_4UpCTObzLDxWSCvuPAbOt/exec";
 
     let selectedImageBase64 = null;
     let selectedImageName = "";
@@ -631,7 +623,6 @@
       setTimeout(() => toast.classList.remove("show"), 2500);
     }
 
-    // Toggle card selection & fill editor
     document.querySelectorAll(".media-card").forEach(card => {
       card.addEventListener("click", (e) => {
         const checkbox = card.querySelector(".card-checkbox");
@@ -650,7 +641,6 @@
       });
     });
 
-    // Select All Checkbox Handler
     let allSelected = true;
     document.getElementById("selectAllBtn").addEventListener("click", () => {
       allSelected = !allSelected;
@@ -661,7 +651,6 @@
       document.getElementById("selectAllBtn").innerHTML = allSelected ? "<span>☑</span> Deselect All" : "<span>☑</span> Select All";
     });
 
-    // Handle Catalogue Image Selection
     function handleProductImageSelect(input) {
       const file = input.files[0];
       if (!file) return;
@@ -677,7 +666,6 @@
       reader.readAsDataURL(file);
     }
 
-    // Upload Product (Image + Sheet row)
     async function initiateProductUpload() {
       const name = document.getElementById("productNameInput").value.trim();
       const category = document.getElementById("categorySelect").value;
@@ -704,13 +692,14 @@
           mode: "no-cors",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            action: "upload_product",
+            action: "uploadProduct",
             name: name,
             category: category,
+            folderName: category,
             purity: purity,
             description: description,
-            fileName: selectedImageName,
-            file: selectedImageBase64
+            imageName: selectedImageName,
+            imageFile: selectedImageBase64
           })
         });
 
@@ -727,7 +716,6 @@
       }
     }
 
-    // Soft Delete (Hide selected items)
     async function initiateSoftDelete() {
       const checkedCards = Array.from(document.querySelectorAll(".card-checkbox.checked")).map(cb => {
         return cb.closest(".media-card").dataset.name;
@@ -748,8 +736,8 @@
           mode: "no-cors",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            action: "soft_delete",
-            productNames: checkedCards
+            action: "softDelete",
+            items: checkedCards
           })
         });
 
@@ -767,7 +755,6 @@
       }
     }
 
-    // AR Video Selection & Simulation
     function handleArVideoSelect(input) {
       const file = input.files[0];
       if (!file) return;
@@ -788,7 +775,6 @@
       }, 100);
     }
 
-    // Upload AR Video Track
     async function initiateVideoUpload() {
       if (!selectedVideoFile) {
         showToast("Please drop an AR Video file first");
@@ -808,13 +794,14 @@
             mode: "no-cors",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              action: "upload_ar_video",
+              action: "uploadTargetVideo",
+              folderName: "AR_TARGET_VIDEO",
               fileName: selectedVideoFile.name,
-              file: base64
+              videoFile: base64
             })
           });
 
-          showToast("AR Video uploaded to Card Client Target!");
+          showToast("AR Video uploaded to Card Target Folder!");
           btn.innerText = "Video Linked";
         } catch (err) {
           showToast("Video upload failed");
